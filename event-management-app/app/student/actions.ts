@@ -1,37 +1,37 @@
-'use server'
+"use server"
 
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
 
 export async function enrollInEvent(prevState: any, formData: FormData) {
   try {
-    const eventId = formData.get('eventId')
-    if (typeof eventId !== 'string') {
-      throw new Error('Invalid event ID')
+    const eventId = formData.get("eventId") as string
+    const name = formData.get("name") as string
+    const email = formData.get("email") as string
+    const phone = formData.get("phone") as string
+
+    if (!eventId || !name || !email || !phone) {
+      throw new Error("Missing required fields")
     }
 
-    // In a real app, you'd get the student ID from the session
-    // For now, we'll create a new student for each enrollment
     const student = await prisma.student.create({
       data: {
-        name: 'Test Student',
-        email: `student_${Date.now()}@example.com`,
+        name,
+        email,
+        phone,
+        enrollments: {
+          create: {
+            eventId,
+          },
+        },
       },
     })
 
-    const enrollment = await prisma.enrollment.create({
-      data: {
-        eventId,
-        studentId: student.id,
-      },
-    })
-
-    console.log('Enrollment created:', enrollment)
-
-    revalidatePath('/student')
-    return { message: 'Enrolled successfully', enrollment }
+    revalidatePath("/student")
+    return { message: `Enrolled successfully: ${name} (${email})` }
   } catch (error) {
-    console.error('Enrollment error:', error)
-    return { message: 'Failed to enroll', error: error.message }
+    console.error("Enrollment error:", error)
+    return { message: "Failed to enroll", error: error.message }
   }
 }
+
